@@ -1,6 +1,8 @@
 using FFMpegCore;
+using System.Drawing.Drawing2D;
 using System.IO;
 using System.IO.Enumeration;
+using System.Linq;
 
 namespace MP4SubtitleMerger
 {
@@ -52,8 +54,8 @@ namespace MP4SubtitleMerger
             textBoxBottomRowLanguage.Text = Properties.Settings.Default.ButtonRowLanguage;
             checkBoxSetAsDefault.Checked = Properties.Settings.Default.SetCombinedSubtitleAsDefault;
             radioButtonExtractFiles.Checked = Properties.Settings.Default.CreateSeparateFilesChecked;
-            radioButtonRepalceVideo.Checked = Properties.Settings.Default.ModifyOriginalVideoChecked;
-
+            radioButtonInjectToVideo.Checked = Properties.Settings.Default.InjectToVideo;
+            textBoxOutputFolder.Text = Properties.Settings.Default.OutputFolder;
         }
 
         private void FormMain_FormClosing(object sender, FormClosingEventArgs e)
@@ -65,15 +67,27 @@ namespace MP4SubtitleMerger
 
             Properties.Settings.Default.SetCombinedSubtitleAsDefault = checkBoxSetAsDefault.Checked;
             Properties.Settings.Default.CreateSeparateFilesChecked = radioButtonExtractFiles.Checked;
-            Properties.Settings.Default.ModifyOriginalVideoChecked = radioButtonRepalceVideo.Checked;
+            Properties.Settings.Default.InjectToVideo = radioButtonInjectToVideo.Checked;
+            Properties.Settings.Default.OutputFolder = textBoxOutputFolder.Text;
             Properties.Settings.Default.Save();
         }
 
         private void toolStripButtonStart_Click(object sender, EventArgs e)
         {
-            if(!Directory.Exists(textBoxFFMPEGPath.Text))
+            if (backgroundWorker1.IsBusy) return;
+                if (!Directory.Exists(textBoxFFMPEGPath.Text))
             {
                 MessageBox.Show("Specified video folder does not exist");
+                return;
+            }
+            if (!Directory.Exists(textBoxOutputFolder.Text))
+            {
+                MessageBox.Show("Specified output folder does not exist");
+                return;
+            }
+            if (string.Compare(textBoxFFMPEGPath.Text, textBoxOutputFolder.Text) == 0)
+            {
+                MessageBox.Show("Input and output folder cannot be the same folder.");
                 return;
             }
             if (!File.Exists(Path.Combine(textBoxFFMPEGPath.Text, "ffmpeg.exe")))
@@ -81,92 +95,190 @@ namespace MP4SubtitleMerger
                 MessageBox.Show("ffmpeg.exe not found in specified folder");
                 return;
             }
-       
-            GlobalFFOptions.Configure(new FFOptions { BinaryFolder = textBoxFFMPEGPath.Text, TemporaryFilesFolder = Path.GetTempPath() });
-            try
-            {
-                var files = Directory.EnumerateFiles(textBoxVideoPath.Text, "*.mp4");
-                if (files.Count() == 0)
-                    throw new FileNotFoundException("No mp4 file under specified folder");
-                foreach (var file in files)
-                {                    
-                    var mediaInfo = FFProbe.Analyse(file);
-                    if (mediaInfo != null && mediaInfo.SubtitleStreams != null)
-                    {
-                        if (mediaInfo.SubtitleStreams.Count < 2)
-                        {
-                            continue;
-                        }
-                        var topRowSubtitleStream = mediaInfo.SubtitleStreams.Where(
-                            s => s.Language == textBoxTopRowLanguage.Text).FirstOrDefault();
-                        var buttonRowSubtitleStream = mediaInfo.SubtitleStreams.Where(
-                            s => s.Language == textBoxBottomRowLanguage.Text).FirstOrDefault();
-                        SubtitleInfo? higherSubtitle= GetSubtitle(file,topRowSubtitleStream);
-                        SubtitleInfo? lowerSubtitle = GetSubtitle(file, buttonRowSubtitleStream);
-                        var mergedSubtitle= SubtitleInfo.Merge(higherSubtitle, lowerSubtitle);
-                        if (radioButtonExtractFiles.Checked)
-                        {
-                            if (topRowSubtitleStream != null && higherSubtitle!=null)
-                            {
-                                var higherSubtitleFileName =
-                                    string.Format("{0}.{1}.srt", file, topRowSubtitleStream.Language);
-                                File.WriteAllText(higherSubtitleFileName, higherSubtitle.ToText());
-                            }
-                            if (buttonRowSubtitleStream != null && lowerSubtitle != null)
-                            {
-                                var lowerSubtitleFileName =
-                                    string.Format("{0}.{1}.srt", file, buttonRowSubtitleStream.Language);
-                                File.WriteAllText(lowerSubtitleFileName, lowerSubtitle.ToText());
-                            }
-                            if (mergedSubtitle != null && topRowSubtitleStream!=null && buttonRowSubtitleStream!=null)
-                            {
-                                var mergeSubtitleFileName =
-                                   string.Format("{0}.{1}.{2}.srt", file, topRowSubtitleStream.Language,
-                                   buttonRowSubtitleStream.Language);
-                                var mergedSubtitleInfo = new SubtitleInfo(mergedSubtitle);
-                                File.WriteAllText(mergeSubtitleFileName, mergedSubtitleInfo.ToText());
-                            }
-                        }
-                        else if (radioButtonRepalceVideo.Checked)
-                        {
 
-                        }
+            GlobalFFOptions.Configure(new FFOptions { BinaryFolder = textBoxFFMPEGPath.Text, TemporaryFilesFolder = Path.GetTempPath() });
+
+            backgroundWorker1.RunWorkerAsync(new BackgroundWorkerArguments(
+               textBoxFFMPEGPath.Text,
+                textBoxVideoPath.Text,
+                textBoxTopRowLanguage.Text,
+                textBoxBottomRowLanguage.Text,
+                textBoxOutputFolder.Text,
+              radioButtonExtractFiles.Checked ? BackgroundWorkerWorkMode.ExtractSubtitle
+                : BackgroundWorkerWorkMode.InjectToVideo
+                , checkBoxSetAsDefault.Checked
+            ));
+        }
+
+        private void toolStripButtonStop_Click(object sender, EventArgs e)
+        {
+            if(backgroundWorker1.IsBusy)
+                backgroundWorker1.CancelAsync();
+        }
+        private void backgroundWorker1_DoWork(object sender, System.ComponentModel.DoWorkEventArgs e)
+        {
+            BackgroundWorkerArguments? arguments = e.Argument as BackgroundWorkerArguments;
+            if (arguments == null) return;
+
+            var files = Directory.EnumerateFiles(arguments.VideoPath, "*.mp4", SearchOption.AllDirectories);
+            int fileCount = files.Count();
+            if (fileCount == 0)
+                throw new FileNotFoundException("No mp4 file under specified folder");
+            List<Exception> exceptions=new List<Exception>();
+            int filesProcessed = 0;
+                foreach (var file in files)
+            {
+                if (backgroundWorker1.CancellationPending) break;
+                backgroundWorker1.ReportProgress(
+                    (filesProcessed) * 100 / fileCount,
+                    string.Format("Processing file {0} of {1} :{2}", filesProcessed + 1, fileCount, file)
+                    );
+                
+                try
+                {
+                    ProcessFile(file, arguments);
+
+                }
+                catch (Exception ex)
+                {
+                    exceptions.Add(ex);
+                }
+                
+                filesProcessed++;
+            }
+            backgroundWorker1.ReportProgress(
+                   0,
+                    string.Format("Processed file {0} of {1}", filesProcessed, fileCount)
+                    );
+            if (exceptions.Any())
+            { 
+                throw new AggregateException(exceptions.ToArray()); 
+            }
+        }
+        private void backgroundWorker1_ProgressChanged(object sender, System.ComponentModel.ProgressChangedEventArgs e)
+        {
+            if (e.UserState != null)
+            {
+                string? message = e.UserState as string;
+                if (message != null)
+                    this.toolStripStatusLabel.Text = message;
+            }
+            this.toolStripProgressBarStatus.Value = e.ProgressPercentage;
+        }
+
+        private void backgroundWorker1_RunWorkerCompleted(object sender, System.ComponentModel.RunWorkerCompletedEventArgs e)
+        {
+            if (e.Error != null)
+            {
+                MessageBox.Show(e.Error.Message);
+            }
+        }
+        static void ProcessFile(string file, BackgroundWorkerArguments arguments)
+        {
+            var relativePathToRoot = Path.GetRelativePath(arguments.VideoPath, file);
+            var outputVideoFileName = Path.Combine(arguments.OutputFolder, relativePathToRoot);
+            var parentFolder = Path.GetDirectoryName(outputVideoFileName);
+            if (parentFolder != null)
+                Directory.CreateDirectory(parentFolder);
+            var tempFolder = Path.GetTempPath();
+            
+            var mediaInfo = FFProbe.Analyse(file);
+
+            if (mediaInfo != null && mediaInfo.SubtitleStreams != null)
+            {
+                if (mediaInfo.SubtitleStreams.Count < 2)
+                {
+                    return;
+                }
+                var topRowSubtitleStream = mediaInfo.SubtitleStreams.Where(
+                    s => s.Language == arguments.TopRowLanguage
+                    &&s.CodecName!= "dvd_subtitle").FirstOrDefault();
+                var buttonRowSubtitleStream = mediaInfo.SubtitleStreams.Where(
+                    s => s.Language == arguments.BottomRowLanguage && s.CodecName != "dvd_subtitle").FirstOrDefault();
+                SubtitleInfo? higherSubtitle = SubtitleInfo.FFMPEGReadSubtitleFromFile(file, topRowSubtitleStream);
+                SubtitleInfo? lowerSubtitle = SubtitleInfo.FFMPEGReadSubtitleFromFile(file, buttonRowSubtitleStream);
+                var mergedSubtitle = SubtitleInfo.Merge(higherSubtitle, lowerSubtitle);
+                SubtitleInfo? mergedSubtitleInfo;
+                if (mergedSubtitle != null)
+                {
+                    mergedSubtitleInfo = new SubtitleInfo(mergedSubtitle);
+                    string? mergedSubtitleText;
+                    if (mergedSubtitleInfo != null)
+                        mergedSubtitleText = mergedSubtitleInfo.ToText();
+                    switch (arguments.WorkMode)
+                    {
+                        case BackgroundWorkerWorkMode.ExtractSubtitle:
+                            ExtractSubtitles(file, arguments, relativePathToRoot, outputVideoFileName,
+                                mediaInfo, topRowSubtitleStream,
+                                buttonRowSubtitleStream, mergedSubtitle, mergedSubtitleInfo);
+                            break;
+                        case BackgroundWorkerWorkMode.InjectToVideo:
+                            List<SubtitleInfo> subtitleInfos = new List<SubtitleInfo>();
+                            foreach (var subtitleStream in mediaInfo.SubtitleStreams)
+                            {
+                                SubtitleInfo? subtitleInfo = SubtitleInfo.FFMPEGReadSubtitleFromFile(file, subtitleStream);
+                                if (subtitleInfo == null)
+                                    continue;
+                                subtitleInfos.Add(subtitleInfo);
+                            }
+                            //to avoid duplicates first process subtitles 
+                            //then compare with existing subtitles
+                            var tempSubtitleTargetFile = Path.Combine(tempFolder,
+                    string.Format("{0}.{1}.merged.srt", Path.GetFileName(file), arguments.TopRowLanguage));
+                            SubtitleInfo? subtitleInfoToBeInjected = SubtitleInfo.FFMPEGTransformSubtitle(mergedSubtitleInfo,
+                                file,
+                                arguments.TopRowLanguage, tempSubtitleTargetFile);
+                            if (subtitleInfoToBeInjected == null)
+                            {
+                                break;
+                            }
+                            //check if already injected
+                            if (subtitleInfos.Any(s => subtitleInfoToBeInjected.RawData.SequenceEqual(s.RawData)))
+                                break;
+                            SubtitleInfo.FFMPEGInjectToFile(file, arguments,
+                                    relativePathToRoot, outputVideoFileName, tempSubtitleTargetFile, arguments.TopRowLanguage, mediaInfo);
+                            break;
+                        default:
+                            break;
                     }
                 }
+                else
+                    throw new FileNotFoundException(
+                        string.Format("The specified file {0} does not have one of the required subtitle track in text format.",file));
             }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message);
-            }
-
         }
-        SubtitleInfo? GetSubtitle(string file, SubtitleStream? subtitleStream)
+
+
+        static void ExtractSubtitles(string file, BackgroundWorkerArguments arguments,
+            string relativePathToRoot,string outputVideoFileName,
+            IMediaAnalysis mediaInfo, SubtitleStream? topRowSubtitleStream, SubtitleStream? buttonRowSubtitleStream, List<MergedSubtitle>? mergedSubtitle, 
+            SubtitleInfo? mergedSubtitleInfo)
         {
-            if (subtitleStream == null) return null;
-            try
+            foreach (var subtitleStream in mediaInfo.SubtitleStreams)
             {
-                FFOptions options = new FFOptions();
-                options.TemporaryFilesFolder = Path.GetTempPath();
-                options.BinaryFolder = textBoxFFMPEGPath.Text;
 
-                var tempFolder=Path.GetTempPath();
-                var tempSubtitleFile = Path.Combine(tempFolder,
-string.Format("{0}.{1}.srt", Path.GetFileName(file), subtitleStream.Language));
-                //ffmpeg -y -i file -map 0:streamIndex -c subrip tempSubtitleFile 
-                var argument = FFMpegArguments.FromFileInput(file)
-                .OutputToFile(tempSubtitleFile, true/*-y*/, opt => opt.SelectStream(subtitleStream.Index)
-                .WithCustomArgument("-c subrip")
-                );
-                var result= argument.ProcessSynchronously(true);
-                var text=File.ReadAllText(tempSubtitleFile);
-                return SubtitleInfo.FromText(text);
-
+                SubtitleInfo? subtitleInfo = SubtitleInfo.FFMPEGReadSubtitleFromFile(file, subtitleStream);
+                if (subtitleInfo != null)
+                {
+                    var subtitleFileName =
+                    string.Format("{0}.{1}.{2}.srt", outputVideoFileName,
+                    subtitleStream.Index, subtitleStream.Language);
+                    File.WriteAllText(subtitleFileName, subtitleInfo.ToText());
+                }
             }
-            catch (Exception)
-            {
 
-                throw;
+            if (mergedSubtitle != null && topRowSubtitleStream != null && buttonRowSubtitleStream != null)
+            {
+                var mergeSubtitleFileName =
+                   string.Format("{0}.{1}.{2}_{3}.srt", outputVideoFileName,
+                   mediaInfo.Format.StreamCount,
+                   topRowSubtitleStream.Language,
+                   buttonRowSubtitleStream.Language);
+                if (mergedSubtitleInfo != null)
+                    File.WriteAllText(mergeSubtitleFileName, mergedSubtitleInfo.ToText());
             }
         }
+
+
     }
 }

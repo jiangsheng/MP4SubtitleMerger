@@ -1,4 +1,6 @@
-﻿using System.Globalization;
+﻿using FFMpegCore;
+using System.Diagnostics;
+using System.Globalization;
 using System.Text;
 
 namespace MP4SubtitleMerger
@@ -6,10 +8,12 @@ namespace MP4SubtitleMerger
     public class SubtitleInfo
     {
         const string SubtitleTimeSpanFormatter = @"hh\:mm\:ss\,fff";
+        public byte[] RawData { get; set; }
         List<Subtitle> Subtitles { get; set; }
-        public SubtitleInfo(List<Subtitle> subtitles)
+        public SubtitleInfo(List<Subtitle> subtitles, byte[] rawData)
         {
             Subtitles = subtitles;
+            RawData = rawData;
         }
 
         public SubtitleInfo(List<MergedSubtitle> mergedSubtitles)
@@ -20,6 +24,7 @@ namespace MP4SubtitleMerger
                         mergedSubtitle.Lines.Select(x => x.Text).ToList()
                         );
             Subtitles = query.ToList();
+            RawData = new byte[] { };
         }
 
         public static List<MergedSubtitle>? Merge(SubtitleInfo? higherSubtitle, SubtitleInfo? lowerSubtitle)
@@ -62,13 +67,13 @@ namespace MP4SubtitleMerger
             }
             return result.ToString();
         }
-        public static SubtitleInfo FromText(string text)
+        public static SubtitleInfo FromText(string text, byte[] rawData)
         {
             List<Subtitle> subtitles = new List<Subtitle>();
             text = text.Trim();
             if (string.IsNullOrWhiteSpace(text))
             {
-                new SubtitleInfo(subtitles );
+                return new SubtitleInfo(subtitles, rawData);
             }
             List<String> lines = new List<string>();
             using (StringReader sr = new StringReader(text))
@@ -90,7 +95,6 @@ namespace MP4SubtitleMerger
                 var timeRanges = DetectTimeRangeLine(lines[lineIndex]);
                 if (timeRanges != null)
                 {
-                    AssertLineIsBlankOrNotInRange(lines, lineIndex - 2);
                     AssertLineIsNumber(lines[lineIndex - 1]);
                     if (lastTimeRangeLine == -1)
                     {
@@ -146,7 +150,7 @@ namespace MP4SubtitleMerger
                 }
             }
 
-            return new SubtitleInfo(subtitles);
+            return new SubtitleInfo(subtitles, rawData);
         }
         static List<TimeSpan>? DetectTimeRangeLine(string line)
         {
@@ -165,15 +169,6 @@ namespace MP4SubtitleMerger
             }
             if (result.Count < 2) return null;
             return result.OrderBy(x => x).Take(2).ToList();
-        }
-        static void AssertLineIsBlankOrNotInRange(List<string> lines, int lineIndex)
-        {
-            if (lineIndex < 0) return;
-            if (!string.IsNullOrEmpty(lines[lineIndex]))
-            {
-                throw new InvalidDataException(
-                    string.Format("Expected blank line at line {0}, found {1}", lineIndex, lines[lineIndex]));
-            }
         }
         static void AssertLineIsNumber(string line)
         {
@@ -408,6 +403,109 @@ namespace MP4SubtitleMerger
             var leftLines=left.Lines.Where(x=>x.Source==source).Select(x=>x.Text).ToList();
             var rightLines = right.Lines.Where(x => x.Source == source).Select(x => x.Text).ToList();
             return leftLines.SequenceEqual(rightLines);
+        }
+        public static SubtitleInfo? FFMPEGReadSubtitleFromFile(string file, string? language, int streamIndex)
+        {
+            try
+            {
+                var tempFolder = Path.GetTempPath();
+                var tempSubtitleFile = Path.Combine(tempFolder,
+string.Format("{0}.{1}.srt", Path.GetFileName(file), language));
+                //ffmpeg -y -i file -map 0:streamIndex -c subrip tempSubtitleFile 
+                var argument = FFMpegArguments.FromFileInput(file)
+                .OutputToFile(tempSubtitleFile, true/*-y*/, opt => opt.SelectStream(streamIndex)
+                .WithCustomArgument("-c subrip")
+                );
+                var result = argument.ProcessSynchronously(true);
+                var text = File.ReadAllText(tempSubtitleFile);
+                var rawData = File.ReadAllBytes(tempSubtitleFile);
+                return SubtitleInfo.FromText(text, rawData);
+
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(ex.Message);
+                return null;
+            }
+        }
+        public static SubtitleInfo? FFMPEGReadSubtitleFromFile(string file, SubtitleStream? subtitleStream)
+        {
+            if (subtitleStream == null) return null;
+            return FFMPEGReadSubtitleFromFile(file, subtitleStream.Language, subtitleStream.Index);
+        }
+
+        public static SubtitleInfo? FFMPEGTransformSubtitle(SubtitleInfo? subtitleInfo, string file, string? language,string tempSubtitleTargetFile)
+        {
+            if (subtitleInfo == null) return null;
+            try
+            {
+                var tempFolder = Path.GetTempPath();
+                var tempSubtitleSourceFile = Path.Combine(tempFolder,
+                    string.Format("{0}.{1}.srt", Path.GetFileName(file), language));
+                File.WriteAllText(tempSubtitleSourceFile, subtitleInfo.ToText());
+
+                var argument = FFMpegArguments.FromFileInput(tempSubtitleSourceFile)
+                    .OutputToFile(tempSubtitleTargetFile, true/*-y*/, opt => opt.SelectStream(0).
+                        WithCustomArgument(string.Format("-c subrip")));
+                Debug.WriteLine(argument.Arguments);
+                var result = argument.ProcessSynchronously(true);
+                var text = File.ReadAllText(tempSubtitleTargetFile);
+                var rawData = File.ReadAllBytes(tempSubtitleTargetFile);
+                return SubtitleInfo.FromText(text, rawData);
+
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(ex.ToString());
+                return null; 
+            }
+        }
+
+        public static void FFMPEGInjectToFile(string file, BackgroundWorkerArguments arguments, 
+            string relativePathToRoot, string outputVideoFileName, string tempSubtitleTargetFile, string language, IMediaAnalysis mediaInfo)
+        {
+            try
+            {
+                StringBuilder sb = new StringBuilder();
+                sb.Append("-map 0 -map 1 -c:v copy -c:a copy ");
+                int newStreamIndex = mediaInfo.SubtitleStreams.Count;
+                for (int i = 0; i < newStreamIndex; i++)
+                {
+                    sb.AppendFormat("-c:s:{0} copy ", i);
+                }
+                sb.Append("-copy_unknown ");
+                //ffmpeg does not support subrip in mp4
+                sb.AppendFormat("-c:s:{0} mov_text ", newStreamIndex);
+                sb.AppendFormat("-metadata:s:s:{0} language={1} ", newStreamIndex, language);
+                if (arguments.SetAsDefault)
+                {
+                    for (int i = 0; i < newStreamIndex; i++) {
+                        sb.AppendFormat("-disposition:s:s:{0} 0 ", i);
+                    }
+                    sb.AppendFormat("-disposition:s:s:{0} default ", newStreamIndex);
+                }
+#if DEBUG
+                sb.Append("-loglevel debug -v verbose");
+#endif
+
+                var argument = FFMpegArguments.FromFileInput(file).
+                    AddFileInput(tempSubtitleTargetFile)
+                    .OutputToFile
+                    (
+                        outputVideoFileName, true/*-y*/, opt => opt.WithCustomArgument
+                        (
+                            sb.ToString()
+                        )
+                    );
+                Debug.WriteLine(argument.Arguments);
+                var result = argument.ProcessSynchronously(true);
+
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(ex.ToString());
+                throw;
+            }
         }
     }
 }

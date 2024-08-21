@@ -29,18 +29,18 @@
         private void InitializeComponent()
         {
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(FormMain));
-            toolStripContainer1 = new ToolStripContainer();
-            statusStrip1 = new StatusStrip();
-            toolStripStatusLabel1 = new ToolStripStatusLabel();
-            toolStripProgressBar1 = new ToolStripProgressBar();
-            tableLayoutPanel1 = new TableLayoutPanel();
+            toolStripContainerMain = new ToolStripContainer();
+            statusStripBottom = new StatusStrip();
+            toolStripProgressBarStatus = new ToolStripProgressBar();
+            toolStripStatusLabel = new ToolStripStatusLabel();
+            tableLayoutPanelMain = new TableLayoutPanel();
             label2 = new Label();
             label1 = new Label();
             textBoxFFMPEGPath = new TextBox();
             label3 = new Label();
             textBoxVideoPath = new TextBox();
-            tableLayoutPanel2 = new TableLayoutPanel();
-            radioButtonRepalceVideo = new RadioButton();
+            tableLayoutPanelWorkMode = new TableLayoutPanel();
+            radioButtonInjectToVideo = new RadioButton();
             radioButtonExtractFiles = new RadioButton();
             checkBoxSetAsDefault = new CheckBox();
             label4 = new Label();
@@ -48,92 +48,97 @@
             textBoxTopRowLanguage = new TextBox();
             textBoxBottomRowLanguage = new TextBox();
             label6 = new Label();
-            toolStrip1 = new ToolStrip();
+            label7 = new Label();
+            textBoxOutputFolder = new TextBox();
+            toolStripTop = new ToolStrip();
             toolStripButtonStart = new ToolStripButton();
             toolStripButtonStop = new ToolStripButton();
             toolStripButtonDetectLanguages = new ToolStripButton();
-            toolStripContainer1.BottomToolStripPanel.SuspendLayout();
-            toolStripContainer1.ContentPanel.SuspendLayout();
-            toolStripContainer1.TopToolStripPanel.SuspendLayout();
-            toolStripContainer1.SuspendLayout();
-            statusStrip1.SuspendLayout();
-            tableLayoutPanel1.SuspendLayout();
-            tableLayoutPanel2.SuspendLayout();
-            toolStrip1.SuspendLayout();
+            backgroundWorker1 = new System.ComponentModel.BackgroundWorker();
+            toolStripContainerMain.BottomToolStripPanel.SuspendLayout();
+            toolStripContainerMain.ContentPanel.SuspendLayout();
+            toolStripContainerMain.TopToolStripPanel.SuspendLayout();
+            toolStripContainerMain.SuspendLayout();
+            statusStripBottom.SuspendLayout();
+            tableLayoutPanelMain.SuspendLayout();
+            tableLayoutPanelWorkMode.SuspendLayout();
+            toolStripTop.SuspendLayout();
             SuspendLayout();
             // 
-            // toolStripContainer1
+            // toolStripContainerMain
             // 
             // 
-            // toolStripContainer1.BottomToolStripPanel
+            // toolStripContainerMain.BottomToolStripPanel
             // 
-            toolStripContainer1.BottomToolStripPanel.Controls.Add(statusStrip1);
+            toolStripContainerMain.BottomToolStripPanel.Controls.Add(statusStripBottom);
             // 
-            // toolStripContainer1.ContentPanel
+            // toolStripContainerMain.ContentPanel
             // 
-            toolStripContainer1.ContentPanel.Controls.Add(tableLayoutPanel1);
-            toolStripContainer1.ContentPanel.Size = new Size(1192, 338);
-            toolStripContainer1.Dock = DockStyle.Fill;
-            toolStripContainer1.Location = new Point(0, 0);
-            toolStripContainer1.Name = "toolStripContainer1";
-            toolStripContainer1.Size = new Size(1192, 404);
-            toolStripContainer1.TabIndex = 0;
-            toolStripContainer1.Text = "toolStripContainer1";
+            toolStripContainerMain.ContentPanel.Controls.Add(tableLayoutPanelMain);
+            toolStripContainerMain.ContentPanel.Size = new Size(1192, 338);
+            toolStripContainerMain.Dock = DockStyle.Fill;
+            toolStripContainerMain.Location = new Point(0, 0);
+            toolStripContainerMain.Name = "toolStripContainerMain";
+            toolStripContainerMain.Size = new Size(1192, 404);
+            toolStripContainerMain.TabIndex = 0;
+            toolStripContainerMain.Text = "toolStripContainer1";
             // 
-            // toolStripContainer1.TopToolStripPanel
+            // toolStripContainerMain.TopToolStripPanel
             // 
-            toolStripContainer1.TopToolStripPanel.Controls.Add(toolStrip1);
+            toolStripContainerMain.TopToolStripPanel.Controls.Add(toolStripTop);
             // 
-            // statusStrip1
+            // statusStripBottom
             // 
-            statusStrip1.Dock = DockStyle.None;
-            statusStrip1.ImageScalingSize = new Size(24, 24);
-            statusStrip1.Items.AddRange(new ToolStripItem[] { toolStripStatusLabel1, toolStripProgressBar1 });
-            statusStrip1.Location = new Point(0, 0);
-            statusStrip1.Name = "statusStrip1";
-            statusStrip1.Size = new Size(1192, 32);
-            statusStrip1.TabIndex = 0;
+            statusStripBottom.Dock = DockStyle.None;
+            statusStripBottom.ImageScalingSize = new Size(24, 24);
+            statusStripBottom.Items.AddRange(new ToolStripItem[] { toolStripProgressBarStatus, toolStripStatusLabel });
+            statusStripBottom.Location = new Point(0, 0);
+            statusStripBottom.Name = "statusStripBottom";
+            statusStripBottom.Size = new Size(1192, 32);
+            statusStripBottom.TabIndex = 0;
             // 
-            // toolStripStatusLabel1
+            // toolStripProgressBarStatus
             // 
-            toolStripStatusLabel1.Name = "toolStripStatusLabel1";
-            toolStripStatusLabel1.Size = new Size(60, 25);
-            toolStripStatusLabel1.Text = "Ready";
+            toolStripProgressBarStatus.Name = "toolStripProgressBarStatus";
+            toolStripProgressBarStatus.Size = new Size(200, 24);
             // 
-            // toolStripProgressBar1
+            // toolStripStatusLabel
             // 
-            toolStripProgressBar1.Name = "toolStripProgressBar1";
-            toolStripProgressBar1.Size = new Size(100, 24);
+            toolStripStatusLabel.Name = "toolStripStatusLabel";
+            toolStripStatusLabel.Size = new Size(60, 25);
+            toolStripStatusLabel.Text = "Ready";
             // 
-            // tableLayoutPanel1
+            // tableLayoutPanelMain
             // 
-            tableLayoutPanel1.ColumnCount = 2;
-            tableLayoutPanel1.ColumnStyles.Add(new ColumnStyle());
-            tableLayoutPanel1.ColumnStyles.Add(new ColumnStyle());
-            tableLayoutPanel1.Controls.Add(label2, 0, 2);
-            tableLayoutPanel1.Controls.Add(label1, 0, 1);
-            tableLayoutPanel1.Controls.Add(textBoxFFMPEGPath, 1, 1);
-            tableLayoutPanel1.Controls.Add(label3, 1, 0);
-            tableLayoutPanel1.Controls.Add(textBoxVideoPath, 1, 2);
-            tableLayoutPanel1.Controls.Add(tableLayoutPanel2, 1, 5);
-            tableLayoutPanel1.Controls.Add(label4, 0, 3);
-            tableLayoutPanel1.Controls.Add(label5, 0, 4);
-            tableLayoutPanel1.Controls.Add(textBoxTopRowLanguage, 1, 3);
-            tableLayoutPanel1.Controls.Add(textBoxBottomRowLanguage, 1, 4);
-            tableLayoutPanel1.Controls.Add(label6, 0, 5);
-            tableLayoutPanel1.Dock = DockStyle.Fill;
-            tableLayoutPanel1.Location = new Point(0, 0);
-            tableLayoutPanel1.Name = "tableLayoutPanel1";
-            tableLayoutPanel1.RowCount = 7;
-            tableLayoutPanel1.RowStyles.Add(new RowStyle());
-            tableLayoutPanel1.RowStyles.Add(new RowStyle());
-            tableLayoutPanel1.RowStyles.Add(new RowStyle());
-            tableLayoutPanel1.RowStyles.Add(new RowStyle());
-            tableLayoutPanel1.RowStyles.Add(new RowStyle());
-            tableLayoutPanel1.RowStyles.Add(new RowStyle());
-            tableLayoutPanel1.RowStyles.Add(new RowStyle());
-            tableLayoutPanel1.Size = new Size(1192, 338);
-            tableLayoutPanel1.TabIndex = 0;
+            tableLayoutPanelMain.ColumnCount = 2;
+            tableLayoutPanelMain.ColumnStyles.Add(new ColumnStyle());
+            tableLayoutPanelMain.ColumnStyles.Add(new ColumnStyle());
+            tableLayoutPanelMain.Controls.Add(label2, 0, 2);
+            tableLayoutPanelMain.Controls.Add(label1, 0, 1);
+            tableLayoutPanelMain.Controls.Add(textBoxFFMPEGPath, 1, 1);
+            tableLayoutPanelMain.Controls.Add(label3, 1, 0);
+            tableLayoutPanelMain.Controls.Add(textBoxVideoPath, 1, 2);
+            tableLayoutPanelMain.Controls.Add(tableLayoutPanelWorkMode, 1, 5);
+            tableLayoutPanelMain.Controls.Add(label4, 0, 3);
+            tableLayoutPanelMain.Controls.Add(label5, 0, 4);
+            tableLayoutPanelMain.Controls.Add(textBoxTopRowLanguage, 1, 3);
+            tableLayoutPanelMain.Controls.Add(textBoxBottomRowLanguage, 1, 4);
+            tableLayoutPanelMain.Controls.Add(label6, 0, 5);
+            tableLayoutPanelMain.Controls.Add(label7, 0, 6);
+            tableLayoutPanelMain.Controls.Add(textBoxOutputFolder, 1, 6);
+            tableLayoutPanelMain.Dock = DockStyle.Fill;
+            tableLayoutPanelMain.Location = new Point(0, 0);
+            tableLayoutPanelMain.Name = "tableLayoutPanelMain";
+            tableLayoutPanelMain.RowCount = 7;
+            tableLayoutPanelMain.RowStyles.Add(new RowStyle());
+            tableLayoutPanelMain.RowStyles.Add(new RowStyle());
+            tableLayoutPanelMain.RowStyles.Add(new RowStyle());
+            tableLayoutPanelMain.RowStyles.Add(new RowStyle());
+            tableLayoutPanelMain.RowStyles.Add(new RowStyle());
+            tableLayoutPanelMain.RowStyles.Add(new RowStyle());
+            tableLayoutPanelMain.RowStyles.Add(new RowStyle());
+            tableLayoutPanelMain.Size = new Size(1192, 338);
+            tableLayoutPanelMain.TabIndex = 0;
             // 
             // label2
             // 
@@ -181,39 +186,40 @@
             textBoxVideoPath.Size = new Size(1026, 31);
             textBoxVideoPath.TabIndex = 4;
             // 
-            // tableLayoutPanel2
+            // tableLayoutPanelWorkMode
             // 
-            tableLayoutPanel2.ColumnCount = 2;
-            tableLayoutPanel2.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
-            tableLayoutPanel2.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
-            tableLayoutPanel2.Controls.Add(radioButtonRepalceVideo, 0, 0);
-            tableLayoutPanel2.Controls.Add(radioButtonExtractFiles, 1, 0);
-            tableLayoutPanel2.Controls.Add(checkBoxSetAsDefault, 0, 1);
-            tableLayoutPanel2.Dock = DockStyle.Fill;
-            tableLayoutPanel2.Location = new Point(202, 176);
-            tableLayoutPanel2.Name = "tableLayoutPanel2";
-            tableLayoutPanel2.RowCount = 2;
-            tableLayoutPanel2.RowStyles.Add(new RowStyle());
-            tableLayoutPanel2.RowStyles.Add(new RowStyle());
-            tableLayoutPanel2.Size = new Size(1026, 117);
-            tableLayoutPanel2.TabIndex = 10;
+            tableLayoutPanelWorkMode.ColumnCount = 2;
+            tableLayoutPanelWorkMode.ColumnStyles.Add(new ColumnStyle());
+            tableLayoutPanelWorkMode.ColumnStyles.Add(new ColumnStyle());
+            tableLayoutPanelWorkMode.Controls.Add(radioButtonInjectToVideo, 0, 0);
+            tableLayoutPanelWorkMode.Controls.Add(radioButtonExtractFiles, 1, 0);
+            tableLayoutPanelWorkMode.Controls.Add(checkBoxSetAsDefault, 0, 1);
+            tableLayoutPanelWorkMode.Dock = DockStyle.Fill;
+            tableLayoutPanelWorkMode.Location = new Point(202, 176);
+            tableLayoutPanelWorkMode.Name = "tableLayoutPanelWorkMode";
+            tableLayoutPanelWorkMode.RowCount = 3;
+            tableLayoutPanelWorkMode.RowStyles.Add(new RowStyle());
+            tableLayoutPanelWorkMode.RowStyles.Add(new RowStyle());
+            tableLayoutPanelWorkMode.RowStyles.Add(new RowStyle());
+            tableLayoutPanelWorkMode.Size = new Size(1026, 117);
+            tableLayoutPanelWorkMode.TabIndex = 10;
             // 
-            // radioButtonRepalceVideo
+            // radioButtonInjectToVideo
             // 
-            radioButtonRepalceVideo.AutoSize = true;
-            radioButtonRepalceVideo.Checked = true;
-            radioButtonRepalceVideo.Location = new Point(3, 3);
-            radioButtonRepalceVideo.Name = "radioButtonRepalceVideo";
-            radioButtonRepalceVideo.Size = new Size(212, 29);
-            radioButtonRepalceVideo.TabIndex = 0;
-            radioButtonRepalceVideo.TabStop = true;
-            radioButtonRepalceVideo.Text = "Modify Original Video";
-            radioButtonRepalceVideo.UseVisualStyleBackColor = true;
+            radioButtonInjectToVideo.AutoSize = true;
+            radioButtonInjectToVideo.Checked = true;
+            radioButtonInjectToVideo.Location = new Point(3, 3);
+            radioButtonInjectToVideo.Name = "radioButtonInjectToVideo";
+            radioButtonInjectToVideo.Size = new Size(152, 29);
+            radioButtonInjectToVideo.TabIndex = 0;
+            radioButtonInjectToVideo.TabStop = true;
+            radioButtonInjectToVideo.Text = "Inject to Video";
+            radioButtonInjectToVideo.UseVisualStyleBackColor = true;
             // 
             // radioButtonExtractFiles
             // 
             radioButtonExtractFiles.AutoSize = true;
-            radioButtonExtractFiles.Location = new Point(516, 3);
+            radioButtonExtractFiles.Location = new Point(161, 3);
             radioButtonExtractFiles.Name = "radioButtonExtractFiles";
             radioButtonExtractFiles.Size = new Size(200, 29);
             radioButtonExtractFiles.TabIndex = 1;
@@ -223,9 +229,10 @@
             // checkBoxSetAsDefault
             // 
             checkBoxSetAsDefault.AutoSize = true;
+            checkBoxSetAsDefault.Dock = DockStyle.Fill;
             checkBoxSetAsDefault.Location = new Point(3, 38);
             checkBoxSetAsDefault.Name = "checkBoxSetAsDefault";
-            checkBoxSetAsDefault.Size = new Size(147, 29);
+            checkBoxSetAsDefault.Size = new Size(152, 29);
             checkBoxSetAsDefault.TabIndex = 8;
             checkBoxSetAsDefault.Text = "Set as Default";
             checkBoxSetAsDefault.UseVisualStyleBackColor = true;
@@ -275,15 +282,32 @@
             label6.TabIndex = 9;
             label6.Text = "Work Mode";
             // 
-            // toolStrip1
+            // label7
             // 
-            toolStrip1.Dock = DockStyle.None;
-            toolStrip1.ImageScalingSize = new Size(24, 24);
-            toolStrip1.Items.AddRange(new ToolStripItem[] { toolStripButtonStart, toolStripButtonStop, toolStripButtonDetectLanguages });
-            toolStrip1.Location = new Point(4, 0);
-            toolStrip1.Name = "toolStrip1";
-            toolStrip1.Size = new Size(326, 34);
-            toolStrip1.TabIndex = 0;
+            label7.AutoSize = true;
+            label7.Location = new Point(3, 296);
+            label7.Name = "label7";
+            label7.Size = new Size(124, 25);
+            label7.TabIndex = 13;
+            label7.Text = "Output Folder";
+            // 
+            // textBoxOutputFolder
+            // 
+            textBoxOutputFolder.Dock = DockStyle.Fill;
+            textBoxOutputFolder.Location = new Point(202, 299);
+            textBoxOutputFolder.Name = "textBoxOutputFolder";
+            textBoxOutputFolder.Size = new Size(1026, 31);
+            textBoxOutputFolder.TabIndex = 14;
+            // 
+            // toolStripTop
+            // 
+            toolStripTop.Dock = DockStyle.None;
+            toolStripTop.ImageScalingSize = new Size(24, 24);
+            toolStripTop.Items.AddRange(new ToolStripItem[] { toolStripButtonStart, toolStripButtonStop, toolStripButtonDetectLanguages });
+            toolStripTop.Location = new Point(4, 0);
+            toolStripTop.Name = "toolStripTop";
+            toolStripTop.Size = new Size(280, 34);
+            toolStripTop.TabIndex = 0;
             // 
             // toolStripButtonStart
             // 
@@ -303,6 +327,7 @@
             toolStripButtonStop.Name = "toolStripButtonStop";
             toolStripButtonStop.Size = new Size(53, 29);
             toolStripButtonStop.Text = "Stop";
+            toolStripButtonStop.Click += toolStripButtonStop_Click;
             // 
             // toolStripButtonDetectLanguages
             // 
@@ -313,38 +338,46 @@
             toolStripButtonDetectLanguages.Text = "Detect Languages";
             toolStripButtonDetectLanguages.Click += toolStripButtonDetectLanguages_Click;
             // 
+            // backgroundWorker1
+            // 
+            backgroundWorker1.WorkerReportsProgress = true;
+            backgroundWorker1.WorkerSupportsCancellation = true;
+            backgroundWorker1.DoWork += backgroundWorker1_DoWork;
+            backgroundWorker1.ProgressChanged += backgroundWorker1_ProgressChanged;
+            backgroundWorker1.RunWorkerCompleted += backgroundWorker1_RunWorkerCompleted;
+            // 
             // FormMain
             // 
             AutoScaleDimensions = new SizeF(10F, 25F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(1192, 404);
-            Controls.Add(toolStripContainer1);
+            Controls.Add(toolStripContainerMain);
             Name = "FormMain";
             Text = "MP4 Subtitle Merger";
             FormClosing += FormMain_FormClosing;
             Load += FormMain_Load;
-            toolStripContainer1.BottomToolStripPanel.ResumeLayout(false);
-            toolStripContainer1.BottomToolStripPanel.PerformLayout();
-            toolStripContainer1.ContentPanel.ResumeLayout(false);
-            toolStripContainer1.TopToolStripPanel.ResumeLayout(false);
-            toolStripContainer1.TopToolStripPanel.PerformLayout();
-            toolStripContainer1.ResumeLayout(false);
-            toolStripContainer1.PerformLayout();
-            statusStrip1.ResumeLayout(false);
-            statusStrip1.PerformLayout();
-            tableLayoutPanel1.ResumeLayout(false);
-            tableLayoutPanel1.PerformLayout();
-            tableLayoutPanel2.ResumeLayout(false);
-            tableLayoutPanel2.PerformLayout();
-            toolStrip1.ResumeLayout(false);
-            toolStrip1.PerformLayout();
+            toolStripContainerMain.BottomToolStripPanel.ResumeLayout(false);
+            toolStripContainerMain.BottomToolStripPanel.PerformLayout();
+            toolStripContainerMain.ContentPanel.ResumeLayout(false);
+            toolStripContainerMain.TopToolStripPanel.ResumeLayout(false);
+            toolStripContainerMain.TopToolStripPanel.PerformLayout();
+            toolStripContainerMain.ResumeLayout(false);
+            toolStripContainerMain.PerformLayout();
+            statusStripBottom.ResumeLayout(false);
+            statusStripBottom.PerformLayout();
+            tableLayoutPanelMain.ResumeLayout(false);
+            tableLayoutPanelMain.PerformLayout();
+            tableLayoutPanelWorkMode.ResumeLayout(false);
+            tableLayoutPanelWorkMode.PerformLayout();
+            toolStripTop.ResumeLayout(false);
+            toolStripTop.PerformLayout();
             ResumeLayout(false);
         }
 
         #endregion
 
-        private ToolStripContainer toolStripContainer1;
-        private TableLayoutPanel tableLayoutPanel1;
+        private ToolStripContainer toolStripContainerMain;
+        private TableLayoutPanel tableLayoutPanelMain;
         private Label label1;
         private TextBox textBoxFFMPEGPath;
         private Label label2;
@@ -354,17 +387,20 @@
         private TextBox textBoxTopRowLanguage;
         private CheckBox checkBoxSetAsDefault;
         private Label label6;
-        private TableLayoutPanel tableLayoutPanel2;
-        private RadioButton radioButtonRepalceVideo;
+        private TableLayoutPanel tableLayoutPanelWorkMode;
+        private RadioButton radioButtonInjectToVideo;
         private RadioButton radioButtonExtractFiles;
-        private StatusStrip statusStrip1;
-        private ToolStripStatusLabel toolStripStatusLabel1;
-        private ToolStrip toolStrip1;
+        private StatusStrip statusStripBottom;
+        private ToolStripStatusLabel toolStripStatusLabel;
+        private ToolStrip toolStripTop;
         private ToolStripButton toolStripButtonStart;
         private ToolStripButton toolStripButtonStop;
-        private ToolStripProgressBar toolStripProgressBar1;
+        private ToolStripProgressBar toolStripProgressBarStatus;
         private Label label5;
         private TextBox textBoxBottomRowLanguage;
         private ToolStripButton toolStripButtonDetectLanguages;
+        private Label label7;
+        private TextBox textBoxOutputFolder;
+        private System.ComponentModel.BackgroundWorker backgroundWorker1;
     }
 }

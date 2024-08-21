@@ -74,12 +74,12 @@ namespace MP4SubtitleMerger.Properties {
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("True")]
-        public bool ModifyOriginalVideoChecked {
+        public bool InjectToVideo {
             get {
-                return ((bool)(this["ModifyOriginalVideoChecked"]));
+                return ((bool)(this["InjectToVideo"]));
             }
             set {
-                this["ModifyOriginalVideoChecked"] = value;
+                this["InjectToVideo"] = value;
             }
         }
         
@@ -104,6 +104,18 @@ namespace MP4SubtitleMerger.Properties {
             }
             set {
                 this["SetCombinedSubtitleAsDefault"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public string OutputFolder {
+            get {
+                return ((string)(this["OutputFolder"]));
+            }
+            set {
+                this["OutputFolder"] = value;
             }
         }
     }
