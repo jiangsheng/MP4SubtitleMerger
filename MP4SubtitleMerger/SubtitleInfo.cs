@@ -1,7 +1,11 @@
 ﻿using FFMpegCore;
+using FFMpegCore.Arguments;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
+using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace MP4SubtitleMerger
 {
@@ -27,17 +31,20 @@ namespace MP4SubtitleMerger
             RawData = new byte[] { };
         }
 
-        public static List<MergedSubtitle>? Merge(SubtitleInfo? higherSubtitle, SubtitleInfo? lowerSubtitle)
+        public static List<MergedSubtitle>? Merge(SubtitleInfo? higherSubtitle, SubtitleInfo? lowerSubtitle, BackgroundWorkerArguments
+            arguments)
         {
             if (higherSubtitle == null) return null;
             if (lowerSubtitle == null) return null;
             List<MergedSubtitle> result =
-                InitialMerge(higherSubtitle, lowerSubtitle);
+                InitialMerge(higherSubtitle, lowerSubtitle, arguments);
             PadWhenHigherOrLowerLinesEmpty(result);
             SortLines(result);
+            result= Compact(result);
+            UpdateFont(result, arguments);
             return result;
         }
-        public string ToText()
+        public string ToText(bool clearFormating)
         {
             if(Subtitles==null) return string.Empty;
 
@@ -52,7 +59,12 @@ namespace MP4SubtitleMerger
                 int lineIndex = 1;
                 foreach (var line in sub.Lines)
                 {
-                    result.Append(line);
+                    if(clearFormating)
+                    {
+                        result.Append(ClearFormating(line));
+                    }
+                    else
+                        result.Append(line);
                     if (lineIndex != sub.Lines.Count || subIndex != Subtitles.Count)
                     {
                         result.AppendLine();
@@ -66,6 +78,27 @@ namespace MP4SubtitleMerger
                 subIndex++;
             }
             return result.ToString();
+        }
+        public static string ClearFormating(string line)
+        {
+            if (string.IsNullOrEmpty(line))
+                return line;
+            StringBuilder sb = new StringBuilder(line).Replace("<b>", string.Empty)
+                .Replace("</b>", string.Empty)
+                .Replace("{b}", string.Empty)
+                .Replace("{/b}", string.Empty)
+                .Replace("<i>", string.Empty)
+                .Replace("</i>", string.Empty)
+                .Replace("{i}", string.Empty)
+                .Replace("{/i}", string.Empty)
+                .Replace("<u>", string.Empty)
+                .Replace("</u>", string.Empty)
+                .Replace("{u}", string.Empty)
+                .Replace("{/u}", string.Empty);
+            var result = Regex.Replace(sb.ToString(), @"<font[^>]*>", string.Empty);
+            result = Regex.Replace(result, @"</.*font.*>", string.Empty);
+            return result;
+    
         }
         public static SubtitleInfo FromText(string text, byte[] rawData)
         {
@@ -155,7 +188,8 @@ namespace MP4SubtitleMerger
         static List<TimeSpan>? DetectTimeRangeLine(string line)
         {
             var splits = line.Split(" --> ");
-            List<TimeSpan> result = new List<TimeSpan>();
+            if (splits.Length == 1) return null;
+                List<TimeSpan> result = new List<TimeSpan>();
             foreach (var split in splits)
             {
                 var text = split.Trim();
@@ -203,7 +237,7 @@ namespace MP4SubtitleMerger
                 return true;
             }
         }
-        static List<MergedSubtitle> InitialMerge(SubtitleInfo higherSubtitleInfo, SubtitleInfo lowerSubtitleInfo)
+        static List<MergedSubtitle> InitialMerge(SubtitleInfo higherSubtitleInfo, SubtitleInfo lowerSubtitleInfo, BackgroundWorkerArguments arguments)
         {
             List<MergedSubtitle> result = new List<MergedSubtitle>();
             List<TimeSpan> timePoints = higherSubtitleInfo.Subtitles.Select(x => x.From)
@@ -247,14 +281,18 @@ namespace MP4SubtitleMerger
                     {
                         subtitleLines.AddRange(
                             higherSubtitle.Lines
-                            .Select(x => new MergedSubtitleLine(x, SubtitleSource.Higher)));
+                            .Select(x => new MergedSubtitleLine(
+                                arguments.ClearFormating? ClearFormating (x): x, SubtitleSource.Higher)));
+                      
+
                     }
 
                     if (lowerSubtitle != null)
                     {
                         subtitleLines.AddRange(
                             lowerSubtitle.Lines
-                            .Select(x => new MergedSubtitleLine(x, SubtitleSource.Lower)));
+                            .Select(x => new MergedSubtitleLine(
+                                arguments.ClearFormating ? ClearFormating(x) : x, SubtitleSource.Lower)));                        
                     }
 
                     result.Add(new MergedSubtitle(from,to,subtitleLines));
@@ -273,9 +311,9 @@ namespace MP4SubtitleMerger
                 var sources = mergedSubtitle.Lines.Select(x => x.Source).ToList();
                 if (sources.Count == 1)
                 {
-                    SubtitleSource otherSubtitleSource = sources[0] == SubtitleSource.Higher ?
+                    SubtitleSource otherSubtitleSource = (sources[0] == SubtitleSource.Higher )?
                         SubtitleSource.Lower : SubtitleSource.Higher;
-                    List<MergedSubtitleLine>? linesToAdd = GetPaddedLines(i, otherSubtitleSource, mergedSubtitles);
+                    List<MergedSubtitleLine>? linesToAdd = GetPaddedLines(i, sources[0], otherSubtitleSource, mergedSubtitles);
                     if (linesToAdd != null)
                     {
                         mergedSubtitle.Lines.AddRange(linesToAdd);
@@ -284,37 +322,20 @@ namespace MP4SubtitleMerger
             }
         }
         static List<MergedSubtitleLine>? GetPaddedLines(int subtitleIndex,
+            SubtitleSource source,
             SubtitleSource otherSubtitleSource, List<MergedSubtitle> mergedSubtitles)
         {
             MergedSubtitle subtitle = mergedSubtitles[subtitleIndex];
-            SubtitleSource firstLineSource = subtitle.Lines[0].Source;
 
             for (int i = subtitleIndex - 1; i >= 0; i--)
             {
-                if (IsConsecutive(mergedSubtitles[i], mergedSubtitles[i + 1], firstLineSource))
+                if (IsConsecutive(mergedSubtitles[i], mergedSubtitles[i + 1], source))
                 {
-                    bool differenceFound = false;
-                    if (mergedSubtitles[i].Lines.Count == mergedSubtitles[i + 1].Lines.Count)
+                    if (MergedSubtitle.CompareLines(mergedSubtitles[i], mergedSubtitles[i + 1]))
                     {
-                        for (int j = 0; j < mergedSubtitles[i].Lines.Count; j++)
-                        {
-                            if (mergedSubtitles[i].Lines[j].Source !=
-                                mergedSubtitles[i+1].Lines[j].Source)
-                            {
-                                differenceFound = true; break;
-                            }
-                            if (string.Compare(mergedSubtitles[i].Lines[j].Text, 
-                                mergedSubtitles[i+1].Lines[j].Text, 
-                                StringComparison.Ordinal) != 0)
-                            {
-                                differenceFound = true; break;
-                            }
-                        }
-                        if (!differenceFound)
-                        {
-                            return mergedSubtitles[i].Lines.Where(line => line.Source == otherSubtitleSource)
-                                .ToList();
-                        }
+                        return mergedSubtitles[i].Lines.Where(line => line.Source == otherSubtitleSource)
+                            .ToList();
+
                     }
                 }
                 else
@@ -325,31 +346,13 @@ namespace MP4SubtitleMerger
 
             for (int i = subtitleIndex + 1; i < mergedSubtitles.Count; i++)
             {
-
-                if (IsConsecutive(mergedSubtitles[i - 1], mergedSubtitles[i], firstLineSource))
+                if (IsConsecutive(mergedSubtitles[i - 1], mergedSubtitles[i], source))
                 {
-                    bool differenceFound = false;
-                    if (mergedSubtitles[i-1].Lines.Count == mergedSubtitles[i].Lines.Count)
+                    if (MergedSubtitle.CompareLines(mergedSubtitles[i], mergedSubtitles[i - 1]))
                     {
-                        for (int j = 0; j < mergedSubtitles[i].Lines.Count; j++)
-                        {
-                            if (mergedSubtitles[i-1].Lines[j].Source !=
-                                mergedSubtitles[i ].Lines[j].Source)
-                            {
-                                differenceFound = true; break;
-                            }
-                            if (string.Compare(mergedSubtitles[i-1].Lines[j].Text,
-                                mergedSubtitles[i].Lines[j].Text,
-                                StringComparison.Ordinal) != 0)
-                            {
-                                differenceFound = true; break;
-                            }
-                        }
-                        if (!differenceFound)
-                        {
-                            return mergedSubtitles[i].Lines.Where(line => line.Source == otherSubtitleSource)
-                                .ToList();
-                        }
+
+                        return mergedSubtitles[i].Lines.Where(line => line.Source == otherSubtitleSource)
+                            .ToList();
                     }
                 }
                 else
@@ -364,11 +367,9 @@ namespace MP4SubtitleMerger
         {
             foreach (var subtitle in subtitles)
             {
-                List<MergedSubtitleLine> orderedLines =
-                    subtitle.Lines.Where(x=>x.Source== SubtitleSource.Higher)
+                subtitle.Lines = subtitle.Lines.Where(x=>x.Source== SubtitleSource.Higher)
                     .Union(subtitle.Lines.Where(x => x.Source == SubtitleSource.Lower))
                     .ToList();
-                subtitle.Lines = orderedLines;
             }
         }
         static int SubtitleIndexFromTime(int currentSubtitleIndex,
@@ -402,7 +403,35 @@ namespace MP4SubtitleMerger
             if(left.To!=right.From) return false;
             var leftLines=left.Lines.Where(x=>x.Source==source).Select(x=>x.Text).ToList();
             var rightLines = right.Lines.Where(x => x.Source == source).Select(x => x.Text).ToList();
-            return leftLines.SequenceEqual(rightLines);
+            bool result=leftLines.SequenceEqual(rightLines);
+            return result;
+        }
+        static List<MergedSubtitle> Compact(List<MergedSubtitle> mergedSubtitles)
+        {
+            LinkedList<MergedSubtitle> result = new LinkedList<MergedSubtitle>();
+            foreach (var mergedSubtitle in mergedSubtitles)
+            {
+                bool addCurrentSubtitle = true;
+                if (result.Last!=null)
+                {
+                    MergedSubtitle lastAddedSubtitle = result.Last.Value;
+                    if (!MergedSubtitle.CompareLines(lastAddedSubtitle, mergedSubtitle)
+                        && lastAddedSubtitle.To == mergedSubtitle.From)
+                    {
+                        //combine
+                        lastAddedSubtitle.To = mergedSubtitle.To;
+                        addCurrentSubtitle = false;
+                    }
+                }
+
+                if (addCurrentSubtitle)
+                {
+                    result.AddLast(mergedSubtitle);
+                }
+            }
+
+            return result.ToList();
+
         }
         public static SubtitleInfo? FFMPEGReadSubtitleFromFile(string file, string? language, int streamIndex)
         {
@@ -434,7 +463,8 @@ string.Format("{0}.{1}.srt", Path.GetFileName(file), language));
             return FFMPEGReadSubtitleFromFile(file, subtitleStream.Language, subtitleStream.Index);
         }
 
-        public static SubtitleInfo? FFMPEGTransformSubtitle(SubtitleInfo? subtitleInfo, string file, string? language,string tempSubtitleTargetFile)
+        public static SubtitleInfo? FFMPEGTransformSubtitle(SubtitleInfo? subtitleInfo, string file, string? language,
+            string tempSubtitleTargetFile)
         {
             if (subtitleInfo == null) return null;
             try
@@ -442,7 +472,7 @@ string.Format("{0}.{1}.srt", Path.GetFileName(file), language));
                 var tempFolder = Path.GetTempPath();
                 var tempSubtitleSourceFile = Path.Combine(tempFolder,
                     string.Format("{0}.{1}.srt", Path.GetFileName(file), language));
-                File.WriteAllText(tempSubtitleSourceFile, subtitleInfo.ToText());
+                File.WriteAllText(tempSubtitleSourceFile, subtitleInfo.ToText(false));
 
                 var argument = FFMpegArguments.FromFileInput(tempSubtitleSourceFile)
                     .OutputToFile(tempSubtitleTargetFile, true/*-y*/, opt => opt.SelectStream(0).
@@ -467,8 +497,18 @@ string.Format("{0}.{1}.srt", Path.GetFileName(file), language));
             try
             {
                 StringBuilder sb = new StringBuilder();
-                sb.Append("-map 0 -map 1 -c:v copy -c:a copy ");
-                int newStreamIndex = mediaInfo.SubtitleStreams.Count;
+                int newStreamIndex = arguments.ReplaceLastTopRowLanguageTrackIfNotFirst ?
+                    mediaInfo.SubtitleStreams.Count - 1 : mediaInfo.SubtitleStreams.Count;
+                if (arguments.ReplaceLastTopRowLanguageTrackIfNotFirst)
+                {
+                    var replaceLanguageTrack = mediaInfo.SubtitleStreams.Where(s => s.CodecName != "dvd_subtitle"
+                    && s.Language== arguments.ReplaceTrackLanguage).Last();
+                    var replaceStreamIndex= replaceLanguageTrack.Index;
+                    sb.AppendFormat("-map 0 -map -0:{0} -map 1 -c:v copy -c:a copy ", replaceStreamIndex);
+                }
+                else
+                    sb.Append("-map 0 -map 1 -c:v copy -c:a copy ");
+                
                 for (int i = 0; i < newStreamIndex; i++)
                 {
                     sb.AppendFormat("-c:s:{0} copy ", i);
@@ -502,9 +542,63 @@ string.Format("{0}.{1}.srt", Path.GetFileName(file), language));
 
             }
             catch (Exception ex)
-            {
+            {                
                 Debug.WriteLine(ex.ToString());
                 throw;
+            }
+        }
+        static void UpdateFont(List<MergedSubtitle> result, BackgroundWorkerArguments arguments)
+        {
+            if (arguments == null) return;
+            if (string.IsNullOrWhiteSpace(arguments.TopRowFontSize) && string.IsNullOrWhiteSpace(arguments.BottomRowFontSize)) return;
+            foreach (MergedSubtitle subtitle in result)
+            {
+                UpdateFont(subtitle, arguments);
+            }
+        }
+        static void UpdateFont(MergedSubtitle subtitle, BackgroundWorkerArguments arguments)
+        {
+            var subtitleLines = subtitle.Lines;
+            int firstTopRowLine = -1;
+            int lastTopRowLine = -1;
+            int firstBottomRowLine = -1;
+            int lastBottomRowLine = -1;
+            for (int i = 0; i < subtitleLines.Count; i++)
+            {
+                var subtitleLine = subtitleLines[i];
+                switch (subtitleLine.Source)
+                {
+                    case SubtitleSource.Higher:
+                        if (firstTopRowLine == -1)
+                            firstTopRowLine = i;
+                        lastTopRowLine = i;
+                        break;
+                    case SubtitleSource.Lower:
+                        if (firstBottomRowLine == -1)
+                            firstBottomRowLine = i;
+                        lastBottomRowLine = i;
+                        break;
+                };
+            }
+
+            if (!string.IsNullOrWhiteSpace(arguments.TopRowFontSize))
+            {
+                if (firstTopRowLine != -1)
+                { 
+                    subtitleLines[firstTopRowLine].Text = string.Format(
+                    "<font size=\"{0}\">{1}", arguments.TopRowFontSize, subtitleLines[firstTopRowLine].Text);
+                }
+                if(lastTopRowLine!=-1)
+                    subtitleLines[lastTopRowLine].Text = string.Format("{0}</font>", subtitleLines[lastTopRowLine].Text);
+            }
+
+            if (!string.IsNullOrWhiteSpace(arguments.BottomRowFontSize))
+            {
+                if(firstBottomRowLine!=-1)
+                    subtitleLines[firstBottomRowLine].Text = string.Format(
+                        "<font size=\"{0}\">{1}", arguments.BottomRowFontSize, subtitleLines[firstBottomRowLine].Text);
+                if(lastBottomRowLine!=-1)
+                    subtitleLines[lastBottomRowLine].Text = string.Format("{0}</font>", subtitleLines[lastBottomRowLine].Text);
             }
         }
     }

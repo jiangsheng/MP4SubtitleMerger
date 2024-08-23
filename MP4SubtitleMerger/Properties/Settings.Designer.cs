@@ -109,13 +109,109 @@ namespace MP4SubtitleMerger.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
         public string OutputFolder {
             get {
                 return ((string)(this["OutputFolder"]));
             }
             set {
                 this["OutputFolder"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool ClearFormating {
+            get {
+                return ((bool)(this["ClearFormating"]));
+            }
+            set {
+                this["ClearFormating"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0, 0")]
+        public global::System.Drawing.Point RestoreBoundsTopLeft {
+            get {
+                return ((global::System.Drawing.Point)(this["RestoreBoundsTopLeft"]));
+            }
+            set {
+                this["RestoreBoundsTopLeft"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0, 0")]
+        public global::System.Drawing.Size RestoreBoundsSize {
+            get {
+                return ((global::System.Drawing.Size)(this["RestoreBoundsSize"]));
+            }
+            set {
+                this["RestoreBoundsSize"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool Maximized {
+            get {
+                return ((bool)(this["Maximized"]));
+            }
+            set {
+                this["Maximized"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool ReplaceLastTopLanguageTrackExceptFirst {
+            get {
+                return ((bool)(this["ReplaceLastTopLanguageTrackExceptFirst"]));
+            }
+            set {
+                this["ReplaceLastTopLanguageTrackExceptFirst"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string TopRowFontSize {
+            get {
+                return ((string)(this["TopRowFontSize"]));
+            }
+            set {
+                this["TopRowFontSize"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string BottomRowFontSize {
+            get {
+                return ((string)(this["BottomRowFontSize"]));
+            }
+            set {
+                this["BottomRowFontSize"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string ReplaceTrackLanguage {
+            get {
+                return ((string)(this["ReplaceTrackLanguage"]));
+            }
+            set {
+                this["ReplaceTrackLanguage"] = value;
             }
         }
     }
