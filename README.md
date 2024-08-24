@@ -1,9 +1,11 @@
-This program extracts subtitles tracks from video files and optionaly add a dual language subtitle created from combining subtitle tracks of two selected languages back to the original file or replace an existing subtitle track with the dual language subtitle. Only text subtitles are supported. 
+This Windows program extracts subtitles tracks from video files and optionaly adds a dual language subtitle created from combining subtitle tracks of two selected languages back to the original file or replaces an existing subtitle track with the dual language subtitle. Only text subtitles are supported. 
 
 The input:
 
 Folder path where the videos are located. Only mp4 files are supported.
+
 Folder path where FFMPEG files are located.
+
 Folder path where the output will be generated. Cannnot be the same as video path.
 
 Three-letter language code of the top tow of the merged subtitle. Can be detected. Will be used for the language code for the merged track. For reference check https://en.wikipedia.org/wiki/List_of_ISO_639-2_codes.
