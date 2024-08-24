@@ -10,7 +10,7 @@ Three-letter language code of the top tow of the merged subtitle. Can be detecte
 
 Three-letter language code of the buttom tow of the merged subtitle. Can be detected.
 
-Font size for each language in the merged subtitle. Can be in a number (e.g. 14) or in pixels (e.g. 14px). Technically unofficial and no guaranteed support from players/trancoders. 
+Font size for each language in the merged subtitle. Can be in a number (e.g. 14) or in pixels (e.g. 14px). Technically unofficial and no guaranteed support from players/trancoders. Can be empty and leave the font choice to video players. Use Clear Formating if the original subtitles contain font tags. 
 
 Known players supporting font size tags in subtitle: VLC for Windows.
 Known players not supporting: VLC for Android. 
