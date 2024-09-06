@@ -2,7 +2,7 @@ This Windows program extracts subtitles tracks from video files and optionaly ad
 
 The input:
 
-Folder path where the videos are located. Only mp4 files are supported.
+Folder path where the videos containing subtitles for multiple languages are located. Only mp4 files are supported.
 
 Folder path where FFMPEG files are located.
 
