@@ -418,9 +418,14 @@ namespace MP4SubtitleMerger
                     if (!MergedSubtitle.CompareLines(lastAddedSubtitle, mergedSubtitle)
                         && lastAddedSubtitle.To == mergedSubtitle.From)
                     {
-                        //combine
-                        lastAddedSubtitle.To = mergedSubtitle.To;
-                        addCurrentSubtitle = false;
+                        //combine if not already too long
+                        var lastAddedSubtitleLength = lastAddedSubtitle.Lines.Select(line => line.Text.Length).Sum();
+                        var lastAddedSubtitleLineCount = lastAddedSubtitle.Lines.Count;
+                        if (lastAddedSubtitleLength < 80 && lastAddedSubtitleLineCount < 3)
+                        {
+                            lastAddedSubtitle.To = mergedSubtitle.To;
+                            addCurrentSubtitle = false;
+                        }
                     }
                 }
 
